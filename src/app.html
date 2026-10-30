@@ -249,6 +249,44 @@
   .nodata button{margin-top:.3em;padding:.5em .95em;border-radius:.6em;border:0;background:var(--accent);
                  color:#fff;font-size:.85em;font-weight:600;cursor:pointer}
 
+  /* ---------- приветствие ---------- */
+  .welcome{position:absolute;inset:0;z-index:30;display:none;align-items:center;justify-content:center;
+           background:linear-gradient(140deg,rgba(255,255,255,.55),rgba(255,255,255,.25));
+           backdrop-filter:blur(14px)}
+  .welcome.on{display:flex}
+  .wbox{width:min(92%,34em);background:var(--glass-strong);border:1px solid var(--line);
+        border-radius:1.2em;box-shadow:var(--shadow);padding:1.4em 1.5em;backdrop-filter:blur(26px)}
+  .wlogo{font-size:1.5em;font-weight:700;letter-spacing:.16em}
+  .wlogo i{color:var(--accent);font-style:normal}
+  .wsub{color:var(--ink3);font-size:.72em;letter-spacing:.06em;margin:.3em 0 1em;text-transform:uppercase}
+  .wstep{display:flex;align-items:center;gap:.7em;padding:.55em 0;border-top:1px solid rgba(0,0,0,.07)}
+  .wstep>b{flex:none;width:1.7em;height:1.7em;border-radius:50%;background:var(--accent);color:#fff;
+           display:grid;place-items:center;font-size:.8em}
+  .wstep>div{flex:1;min-width:0}
+  .wstep span{display:block;font-size:.84em;font-weight:600}
+  .wstep em{display:block;font-style:normal;font-size:.66em;color:var(--ink3);margin-top:.15em}
+  .wstep button,.wstep select{padding:.4em .8em;border-radius:.5em;border:1px solid rgba(0,0,0,.08);
+        background:rgba(255,255,255,.8);font-size:.72em;cursor:pointer;color:var(--ink);flex:none}
+  .wgo{margin-top:1.1em;width:100%;padding:.7em;border:0;border-radius:.7em;background:var(--accent);
+       color:#fff;font-size:.9em;font-weight:600;cursor:pointer;box-shadow:0 8px 20px rgba(10,132,255,.35)}
+  .wgo:hover{filter:brightness(1.06)}
+
+  /* ---------- youtube-бар ---------- */
+  .ytbar{flex:none;display:flex;gap:.45em;padding:.5em .6em;align-items:center}
+  .ytbar input{flex:1;min-width:0;padding:.45em .8em;border-radius:.6em;border:1px solid rgba(255,255,255,.7);
+               background:rgba(255,255,255,.75);font-size:.76em;color:var(--ink);outline:none}
+  .ytbar input:focus{border-color:var(--accent)}
+  .ytbar button{padding:.45em .85em;border-radius:.6em;border:0;background:var(--accent);color:#fff;
+                font-size:.74em;font-weight:600;cursor:pointer;flex:none}
+  .ytbar button.ghost{background:rgba(255,255,255,.75);color:var(--ink);border:1px solid rgba(0,0,0,.08)}
+
+  /* ---------- выбор фуры ---------- */
+  .trucks{display:flex;flex-wrap:wrap;gap:.35em;padding:.15em 0 .4em}
+  .trucks button{padding:.35em .7em;border-radius:999px;border:1px solid rgba(0,0,0,.08);
+                 background:rgba(255,255,255,.7);font-size:.7em;cursor:pointer;color:var(--ink)}
+  .trucks button.on{background:var(--accent);color:#fff;border-color:transparent}
+  .hintsmall{font-size:.62em;color:var(--ink3);line-height:1.5}
+
   /* ---------- тост ---------- */
   #hud{position:absolute;left:50%;top:1em;transform:translate(-50%,-8px);z-index:60;
        padding:.4em 1em;border-radius:999px;background:rgba(22,24,30,.86);color:#fff;
@@ -303,6 +341,35 @@
 
     <div class="stage">
       <div class="content">
+        <section class="welcome" id="v-welcome">
+          <div class="wbox">
+            <div class="wlogo">TRUCK<i>·</i>PLAY</div>
+            <div class="wsub">медиасистема кабины · настройка за минуту</div>
+
+            <div class="wstep">
+              <b>1</b>
+              <div><span>Оконный режим игры</span>
+                <em>иначе полный экран перекроет медиасистему</em></div>
+              <button data-cmd="borderless">Сделать</button>
+            </div>
+
+            <div class="wstep">
+              <b>2</b>
+              <div><span>Плагин телеметрии</span>
+                <em id="welTelStatus">проверяю…</em></div>
+              <button id="welInstall">Установить</button>
+            </div>
+
+            <div class="wstep">
+              <b>3</b>
+              <div><span>На какой фуре</span>
+                <em>позиция экрана запомнится для выбранной</em></div>
+              <select id="welTruck"></select>
+            </div>
+
+            <button class="wgo" id="welGo">Начать</button>
+          </div>
+        </section>
         <section class="view on" id="v-home" style="flex-direction:column">
           <div class="card" style="flex:none">
             <div class="grid">
@@ -395,6 +462,14 @@
         </section>
 
         <section class="view" id="v-youtube">
+          <div class="card" style="flex:none;padding:0">
+            <div class="ytbar">
+              <input id="ytSearch" placeholder="Поиск на YouTube…" autocomplete="off">
+              <button id="ytSearchBtn">Найти</button>
+              <input id="ytLink" placeholder="или ссылка на ролик" autocomplete="off">
+              <button id="ytPlay" class="ghost">Включить</button>
+            </div>
+          </div>
           <div class="card ytcard">
             <div id="yt"></div>
             <button class="floatbtn" id="openyt">Открыть youtube.com</button>
@@ -549,6 +624,14 @@
               <div class="keys" id="keys"></div>
             </div>
 
+            <div class="card setcard">
+              <div class="head"><h2>Фура</h2></div>
+              <div class="srow"><span class="slabel">Позиция экрана</span></div>
+              <div class="trucks" id="trucks"></div>
+              <div class="hintsmall">Выбери фуру, поставь окно удобно (Ctrl+Alt+Shift+стрелки) —
+                позиция запомнится именно для неё.</div>
+            </div>
+
             <div class="card setcard" style="grid-column:1 / -1">
               <div class="acts">
                 <button data-cmd="click_through" class="ghost">Переключить мышь</button>
@@ -563,8 +646,7 @@
     </div>
 
     <div id="hud"></div>
-    <div id="glare"></div>
-  </div>
+    <div id="glare"></div>  </div>
 </div>
 <audio id="audio" preload="none"></audio>
 
@@ -946,6 +1028,10 @@
     if (t) {
       $("telPlugin").textContent = t.plugin ? "установлен" : "не установлен";
       $("telPlugin").className = "state " + (t.plugin ? "ok" : "no");
+      $("welTelStatus").textContent = t.plugin
+        ? "установлен — данные пойдут после запуска игры"
+        : "не установлен, без него не будет скорости и топлива";
+      $("welInstall").style.display = t.plugin ? "none" : "";
       $("telLive").textContent = live ? "идут" : (t.game ? "нет связи" : "игра не запущена");
       $("telLive").className = "state " + (live ? "ok" : "no");
     }
@@ -1133,6 +1219,84 @@
     bindSettings();
   }
 
+  /* ---------------- приветствие, фуры, youtube ---------------- */
+
+  var TRUCKS = ["DAF 2021", "DAF XF", "Scania NG", "Volvo FH", "MAN TGX",
+                "Mercedes Actros", "Renault T", "Iveco S-Way"];
+
+  function renderTrucks() {
+    var active = (S.cfg && S.cfg.window && S.cfg.window.truck) || TRUCKS[0];
+    var box = $("trucks");
+    box.innerHTML = "";
+    TRUCKS.forEach(function (name) {
+      var b = document.createElement("button");
+      b.textContent = name;
+      b.className = name === active ? "on" : "";
+      b.addEventListener("click", function () {
+        saveSettings({ truck: name }).then(function () {
+          S.cfg.window.truck = name;
+          renderTrucks();
+          toast("Экран для: " + name);
+        });
+      });
+      box.appendChild(b);
+    });
+
+    var sel = $("welTruck");
+    sel.innerHTML = "";
+    TRUCKS.forEach(function (name) {
+      var o = document.createElement("option");
+      o.value = name;
+      o.textContent = name;
+      if (name === active) { o.selected = true; }
+      sel.appendChild(o);
+    });
+  }
+
+  function bindWelcome() {
+    $("welGo").addEventListener("click", function () {
+      fetch("api/settings?welcome=1");
+      $("v-welcome").classList.remove("on");
+      show("home");
+      toast("Поехали");
+    });
+    $("welInstall").addEventListener("click", function () {
+      toast("Ставлю плагин...");
+      fetch("api/install_plugin").then(function (r) { return r.json(); }).then(function (d) {
+        toast((d.message || "").split("\n")[0]);
+        pollTrip();
+      });
+    });
+    $("welTruck").addEventListener("change", function () {
+      saveSettings({ truck: $("welTruck").value }).then(function () {
+        S.cfg.window.truck = $("welTruck").value;
+        renderTrucks();
+      });
+    });
+  }
+
+  function bindYoutube() {
+    function doSearch() {
+      var q = $("ytSearch").value.trim();
+      if (!q) { return; }
+      fetch("cmd?name=search&arg=" + encodeURIComponent(q));
+      toast("Ищу: " + q);
+    }
+    function doLink() {
+      var raw = $("ytLink").value.trim();
+      if (!raw) { return; }
+      var m = raw.match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([\w-]{11})/);
+      var id = m ? m[1] : (raw.length === 11 ? raw : "");
+      if (!id) { toast("Не понял ссылку"); return; }
+      $("ytLink").value = "";
+      playVideoId(id);
+    }
+    $("ytSearchBtn").addEventListener("click", doSearch);
+    $("ytSearch").addEventListener("keydown", function (e) { if (e.key === "Enter") { doSearch(); } });
+    $("ytPlay").addEventListener("click", doLink);
+    $("ytLink").addEventListener("keydown", function (e) { if (e.key === "Enter") { doLink(); } });
+  }
+
   /* ---------------- команды из Python ---------------- */
 
   function handle(name, arg) {
@@ -1222,6 +1386,12 @@
     renderMusic();
     renderQuick();
     applySettingsUi(S.cfg);
+    renderTrucks();
+    bindWelcome();
+    bindYoutube();
+    if (!S.cfg.ui || !S.cfg.ui.welcome_done) {
+      $("v-welcome").classList.add("on");
+    }
     $("keys").innerHTML = Object.keys(S.cfg.hotkeys).map(function (a) {
       return "<kbd>" + S.cfg.hotkeys[a] + "</kbd><span>" + (LABELS[a] || a) + "</span>";
     }).join("");

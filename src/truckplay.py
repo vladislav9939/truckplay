@@ -62,6 +62,11 @@ DEFAULT_CONFIG = {
         "height": None,
         "always_on_top": True,
         "click_through": True,
+        "truck": "DAF 2021",
+        "presets": {},
+    },
+    "ui": {
+        "welcome_done": False,
     },
     "player": {
         "source": "https://www.youtube.com/watch?v=4xDzrJKXOOY",
@@ -502,6 +507,12 @@ class Handler(SimpleHTTPRequestHandler):
             pass
 
     def do_GET(self):
+        try:
+            self._route()
+        except (ConnectionResetError, ConnectionAbortedError, BrokenPipeError):
+            pass
+
+    def _route(self):
         p = urllib.parse.urlparse(self.path)
         q = urllib.parse.parse_qs(p.query)
         if p.path in ("/", "/index.html", "/app.html"):
@@ -745,6 +756,22 @@ class App:
             except Exception:
                 pass
 
+        truck = q.get("truck", [""])[0]
+        if truck:
+            presets = w.setdefault("presets", {})
+            cur = w.get("truck")
+            if cur:
+                presets[cur] = [w["x"], w["y"], w["width"], w["height"]]
+            w["truck"] = truck
+            preset = presets.get(truck)
+            if preset:
+                w.update({"x": preset[0], "y": preset[1],
+                          "width": preset[2], "height": preset[3]})
+                self.place_content(*self.content_cfg())
+
+        if "welcome" in q:
+            self.cfg.setdefault("ui", {})["welcome_done"] = True
+
         save_config(self.cfg)
         self.save_rect()
         return {"ok": True, "config": self.cfg}
@@ -806,6 +833,12 @@ class App:
     def toast(self, text: str):
         STATE.push("toast", text)
 
+    def _do_borderless(self):
+        msg = cmd_borderless()
+        first = msg.splitlines()[0] if msg else "готово"
+        self.toast(first)
+        print(msg)
+
     def action(self, name: str, arg=None):
         try:
             if name == "click_through":
@@ -813,12 +846,22 @@ class App:
             elif name == "visible":
                 self.show(not self.visible)
             elif name in ("play_pause", "next", "prev", "vol_up", "vol_down", "mute",
-                          "seek_fwd", "seek_back", "view", "playvid", "search"):
+                          "seek_fwd", "seek_back", "view", "playvid"):
                 STATE.push(name, arg)
             elif name == "browse":
                 self.open_youtube()
+            elif name == "search":
+                self.open_youtube(arg or "")
+            elif name == "borderless":
+                threading.Thread(target=self._do_borderless, daemon=True).start()
             elif name == "back":
                 self.close_youtube()
+                try:
+                    self.win.load_url(self.url)
+                except Exception:
+                    pass
+                self.mode = "app"
+                STATE.mode = "app"
                 if self.hwnd:
                     user32.SetForegroundWindow(self.hwnd)
                 self.toast("Экран в кабине")
@@ -834,27 +877,19 @@ class App:
         except Exception as e:
             print(f"[!] {name}: {e}")
 
-    def open_youtube(self):
-        """Отдельное окно с настоящим youtube.com — выбрать видео."""
-        if self.yt_win is not None:
-            try:
-                self.yt_win.show()
-                return
-            except Exception:
-                self.yt_win = None
-        w = self.cfg["window"]
-        sc = self.scale or 1.0
+    def open_youtube(self, query: str | None = None):
+        """Открываем youtube.com прямо в окне кабины (Ctrl+Alt+B — назад)."""
+        url = "https://www.youtube.com"
+        if query:
+            url = "https://www.youtube.com/results?search_query=" + urllib.parse.quote(query)
         try:
-            self.yt_win = webview.create_window(
-                "YouTube", "https://www.youtube.com",
-                x=int(w["x"] / sc), y=int(w["y"] / sc),
-                width=int(w["width"] / sc), height=int(w["height"] / sc),
-                frameless=False, on_top=True, background_color="#0f0f0f",
-            )
-            self.yt_win.events.closed += self._yt_closed
-            self.toast("Выберите видео — вернётся в кабину")
+            self.win.load_url(url)
+            self.mode = "browse"
+            STATE.mode = "browse"
+            self.toast("Ctrl+Alt+B — назад в кабину")
         except Exception as e:
-            print("[!] youtube окно:", e)
+            print("[!] youtube:", e)
+            self.toast("Не открылось: " + str(e)[:40])
 
     def _yt_closed(self):
         self.yt_win = None
@@ -895,6 +930,10 @@ class App:
         self.save_rect()
 
     def save_rect(self):
+        w = self.cfg["window"]
+        truck = w.get("truck")
+        if truck:
+            w.setdefault("presets", {})[truck] = [w["x"], w["y"], w["width"], w["height"]]
         save_config(self.cfg)
 
     def quit(self):

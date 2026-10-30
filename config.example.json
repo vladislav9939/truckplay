@@ -1,19 +1,22 @@
-﻿{
+{
   "window": {
-    "x": 1551,
-    "y": 735,
-    "width": 920,
-    "height": 518,
+    "x": null,
+    "y": null,
+    "width": null,
+    "height": null,
     "always_on_top": true,
     "click_through": true,
-    "frame": "none"
+    "truck": "DAF 2021",
+    "presets": {}
+  },
+  "ui": {
+    "welcome_done": false
   },
   "player": {
     "source": "https://www.youtube.com/watch?v=4xDzrJKXOOY",
     "loop": true,
     "volume": 55,
-    "seek_step": 10,
-    "autoplay": false
+    "seek_step": 10
   },
   "music": {
     "folder": null
@@ -24,9 +27,7 @@
   "look": {
     "bezel": true,
     "glare": true,
-    "theme": "dawn",
-    "show_bar": true,
-    "hud": true
+    "theme": "carplay"
   },
   "hotkeys": {
     "click_through": "ctrl+alt+y",
