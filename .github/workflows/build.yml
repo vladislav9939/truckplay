@@ -1,0 +1,54 @@
+name: build
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ "v*" ]
+  workflow_dispatch:
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Собрать плагин телеметрии
+        shell: cmd
+        run: plugin\build.bat
+
+      - name: Установить зависимости
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pywebview pyinstaller
+
+      - name: Собрать exe
+        run: |
+          python -m PyInstaller --noconfirm --onefile --windowed --name TruckPlay `
+            --add-data "src\app.html;." `
+            --add-data "plugin\truckplay_telemetry.dll;plugin" `
+            --collect-all webview src\truckplay.py
+
+      - name: Упаковать
+        shell: pwsh
+        run: |
+          Copy-Item *.bat dist\ -Force
+          Copy-Item config.example.json dist\ -Force
+          Copy-Item README.md, LICENSE, CHANGELOG.md dist\ -Force
+          Copy-Item docs dist\docs -Recurse -Force
+          Compress-Archive -Path dist\* -DestinationPath TruckPlay.zip -Force
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TruckPlay-windows-x64
+          path: TruckPlay.zip
+
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: TruckPlay.zip
+          generate_release_notes: true

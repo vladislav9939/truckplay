@@ -1,0 +1,51 @@
+﻿{
+  "window": {
+    "x": 1551,
+    "y": 735,
+    "width": 920,
+    "height": 518,
+    "always_on_top": true,
+    "click_through": true,
+    "frame": "none"
+  },
+  "player": {
+    "source": "https://www.youtube.com/watch?v=4xDzrJKXOOY",
+    "loop": true,
+    "volume": 55,
+    "seek_step": 10,
+    "autoplay": false
+  },
+  "music": {
+    "folder": null
+  },
+  "radio": {
+    "source": "ets2"
+  },
+  "look": {
+    "bezel": true,
+    "glare": true,
+    "theme": "dawn",
+    "show_bar": true,
+    "hud": true
+  },
+  "hotkeys": {
+    "click_through": "ctrl+alt+y",
+    "visible": "ctrl+alt+h",
+    "play_pause": "ctrl+alt+p",
+    "next": "ctrl+alt+right",
+    "prev": "ctrl+alt+left",
+    "seek_fwd": "ctrl+alt+period",
+    "seek_back": "ctrl+alt+comma",
+    "vol_up": "ctrl+alt+up",
+    "vol_down": "ctrl+alt+down",
+    "mute": "ctrl+alt+z",
+    "browse": "ctrl+alt+s",
+    "back": "ctrl+alt+b",
+    "reload": "ctrl+alt+r",
+    "quit": "ctrl+alt+q",
+    "move_up": "ctrl+alt+shift+up",
+    "move_down": "ctrl+alt+shift+down",
+    "move_left": "ctrl+alt+shift+left",
+    "move_right": "ctrl+alt+shift+right"
+  }
+}

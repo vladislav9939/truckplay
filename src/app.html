@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TruckPlay</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --ink:#17181c; --ink2:#5d6672; --ink3:#8c96a3;
+    --glass:rgba(255,255,255,.58);
+    --glass-strong:rgba(255,255,255,.74);
+    --line:rgba(255,255,255,.72);
+    --accent:#0a84ff;
+    --shadow:0 10px 30px rgba(46,26,80,.16);
+  }
+  html,body{height:100%;overflow:hidden;background:#05060a}
+  body{font-family:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;color:var(--ink);
+       font-size:clamp(11px,2.7vmin,19px);cursor:default;user-select:none}
+
+  /* ---------- корпус ---------- */
+  #bezel{position:fixed;inset:0;padding:10px;
+         background:linear-gradient(160deg,#2b2f35,#14171b 40%,#0a0c0f 75%,#1b1f24)}
+  body.no-bezel #bezel{padding:0;background:#000}
+  #screen{position:relative;width:100%;height:100%;border-radius:6px;overflow:hidden;
+          display:flex;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06),0 0 0 1px #000,0 6px 24px rgba(0,0,0,.65);
+          background:var(--wall)}
+  body{
+    --wall:
+      radial-gradient(120% 95% at 10% 4%,#ffd3e4 0%,rgba(255,211,228,0) 55%),
+      radial-gradient(110% 85% at 88% 8%,#d3e4ff 0%,rgba(211,228,255,0) 60%),
+      radial-gradient(100% 95% at 74% 100%,#cbb7ff 0%,rgba(203,183,255,0) 62%),
+      linear-gradient(140deg,#f7c4da 0%,#cbb9ff 45%,#a2d3ff 100%);
+  }
+  body.th-sunset{
+    --wall:
+      radial-gradient(120% 95% at 12% 6%,#ffe0b8 0%,rgba(255,224,184,0) 55%),
+      radial-gradient(110% 85% at 86% 10%,#ffc9d6 0%,rgba(255,201,214,0) 60%),
+      radial-gradient(100% 95% at 72% 100%,#c9a6ff 0%,rgba(201,166,255,0) 62%),
+      linear-gradient(140deg,#ffd9a8 0%,#ff9f9f 48%,#b58bff 100%);
+  }
+  body.th-ocean{
+    --wall:
+      radial-gradient(120% 95% at 10% 4%,#cdf7ef 0%,rgba(205,247,239,0) 55%),
+      radial-gradient(110% 85% at 88% 8%,#cfe6ff 0%,rgba(207,230,255,0) 60%),
+      radial-gradient(100% 95% at 74% 100%,#b9c6ff 0%,rgba(185,198,255,0) 62%),
+      linear-gradient(140deg,#c9f4ea 0%,#a9d8ff 48%,#b3c0ff 100%);
+  }
+  body.th-mono{
+    --wall: linear-gradient(140deg,#f2f5f8 0%,#dfe5ec 48%,#c3ccd6 100%);
+  }
+  #glare{position:absolute;inset:0;pointer-events:none;z-index:50;
+         background:linear-gradient(118deg,rgba(255,255,255,.20),rgba(255,255,255,0) 42%,
+                    rgba(255,255,255,0) 72%,rgba(255,255,255,.10));mix-blend-mode:screen}
+
+  /* ---------- боковая панель ---------- */
+  .rail{flex:none;width:5.6em;margin:.55em 0 .55em .55em;border-radius:1.1em;
+        background:var(--glass);border:1px solid var(--line);box-shadow:var(--shadow);
+        backdrop-filter:blur(26px) saturate(150%);
+        display:flex;flex-direction:column;align-items:center;padding:.8em .4em .6em;gap:.2em}
+  #clock{font-size:1.5em;font-weight:600;letter-spacing:-.01em;line-height:1}
+  #day{font-size:.62em;color:var(--ink3);margin-top:.25em;letter-spacing:.04em}
+  .railnav{display:flex;flex-direction:column;gap:.45em;margin-top:.9em;flex:1}
+  .railnav button{width:2.5em;height:2.5em;border:0;border-radius:.75em;background:transparent;
+                  color:#7b8592;display:grid;place-items:center;cursor:pointer;transition:.15s}
+  .railnav button:hover{background:rgba(0,0,0,.06);color:#2c3138}
+  .railnav button.on{background:#0a84ff;color:#fff;box-shadow:0 6px 16px rgba(10,132,255,.4)}
+  .railnav svg{width:1.3em;height:1.3em}
+  #mouseflag{font-size:.55em;letter-spacing:.06em;color:var(--ink3);text-align:center;
+             padding:.35em .3em;border-radius:.5em;line-height:1.25}
+  body.interactive #mouseflag{color:#0a84ff;background:rgba(10,132,255,.10);font-weight:600}
+
+  /* ---------- сцена ---------- */
+  .stage{flex:1;min-width:0;display:flex;flex-direction:column;padding:.55em;gap:.45em}
+  .content{flex:1;position:relative;min-height:0}
+  .view{position:absolute;inset:0;display:none;flex-direction:column;gap:.45em;min-height:0}
+  .view.on{display:flex}
+
+  .card{background:var(--glass);border:1px solid var(--line);border-radius:1.1em;
+        box-shadow:var(--shadow);backdrop-filter:blur(26px) saturate(150%);min-height:0}
+
+  /* ---------- домашний экран ---------- */
+  .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:.55em;padding:.7em}
+  .appicon{display:flex;flex-direction:column;align-items:center;gap:.4em;cursor:pointer;
+           padding:.25em .1em;border-radius:.8em;transition:.15s}
+  .appicon:hover{background:rgba(255,255,255,.35)}
+  .appicon .sq{width:3.3em;height:3.3em;border-radius:1em;display:grid;place-items:center;
+               box-shadow:0 .35em .8em rgba(30,20,60,.22);transition:.15s}
+  .appicon:hover .sq{transform:translateY(-2px) scale(1.03)}
+  .appicon .sq svg{width:1.75em;height:1.75em;color:#fff}
+  .appicon b{font-size:.72em;font-weight:600;letter-spacing:.01em;text-align:center;line-height:1.2}
+  .appicon em{font-size:.6em;color:var(--ink3);font-style:normal;display:block;text-align:center}
+  .sq.yt{background:linear-gradient(160deg,#ff5f6d,#ff2d55)}
+  .sq.radio{background:linear-gradient(160deg,#4facfe,#0a84ff)}
+  .sq.music{background:linear-gradient(160deg,#43e97b,#18b663)}
+  .sq.set{background:linear-gradient(160deg,#a1a7b3,#6c7480)}
+  .sq.map{background:linear-gradient(160deg,#ffd66b,#ff9f0a)}
+  .sq.trip{background:linear-gradient(160deg,#ff9f5a,#ff453a)}
+
+  /* ---------- сейчас играет ---------- */
+  .nowcard{display:flex;align-items:center;gap:1.1em;padding:1.1em 1.2em;flex:1;min-height:0}
+  .cover{width:auto;aspect-ratio:1/1;height:100%;max-height:9em;border-radius:1em;flex:none;
+         display:grid;place-items:center;background:linear-gradient(150deg,#c7b6ff,#8fb8ff);
+         box-shadow:0 .4em 1em rgba(40,30,90,.22);color:#fff;overflow:hidden;transition:background .3s}
+  .cover svg{width:38%;height:38%}
+  .np{flex:1;min-width:0;display:flex;flex-direction:column;gap:.35em;align-self:stretch;justify-content:center}
+  .np .t{font-size:1.25em;font-weight:600;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;line-height:1.2}
+  .np .s{font-size:.66em;color:var(--ink3);letter-spacing:.09em;text-transform:uppercase}
+  .np .bar{height:.3em;border-radius:.2em;background:rgba(0,0,0,.10);overflow:hidden;margin-top:.3em}
+  .np .bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .3s linear}
+  .nprow{display:flex;align-items:center;gap:.6em;margin-top:.5em;flex-wrap:wrap}
+  .nprow .time{font-size:.66em;color:var(--ink3);font-variant-numeric:tabular-nums}
+  .ctrl{display:flex;align-items:center;gap:.45em;margin-left:auto}
+  .ctrl button{border:0;background:rgba(0,0,0,.055);color:#2b313a;cursor:pointer;
+               width:2.4em;height:2.4em;border-radius:50%;display:grid;place-items:center;transition:.15s}
+  .ctrl button:hover{background:rgba(0,0,0,.11)}
+  .ctrl button.main{background:var(--accent);color:#fff;width:3em;height:3em;
+                    box-shadow:0 6px 18px rgba(10,132,255,.4)}
+  .ctrl svg{width:1.05em;height:1.05em}
+  .ctrl button.main svg{width:1.25em;height:1.25em}
+
+  /* ---------- списки ---------- */
+  .listcard{flex:1;display:flex;flex-direction:column;min-height:0;padding:.7em .8em}
+  .head{display:flex;align-items:baseline;gap:.6em;padding:0 .2em .55em;flex:none}
+  .head h2{font-size:.85em;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#495260}
+  .head span{font-size:.68em;color:var(--ink3)}
+  .list{flex:1;overflow:auto;min-height:0;padding-right:.25em}
+  .list::-webkit-scrollbar{width:5px}
+  .list::-webkit-scrollbar-thumb{background:rgba(0,0,0,.18);border-radius:3px}
+  .row{display:flex;align-items:center;gap:.65em;padding:.45em .55em;border-radius:.55em;cursor:pointer}
+  .row:hover{background:rgba(255,255,255,.55)}
+  .row.on{background:rgba(10,132,255,.14);box-shadow:inset 0 0 0 1px rgba(10,132,255,.35)}
+  .row .ic{width:1.7em;height:1.7em;border-radius:.45em;flex:none;display:grid;place-items:center;
+           background:rgba(0,0,0,.06);color:#4a5462}
+  .row .ic svg{width:.95em;height:.95em}
+  .row .n{flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:.82em}
+  .row .m{font-size:.66em;color:var(--ink3);flex:none}
+  .row .eq{width:1em;flex:none;color:var(--accent);font-size:.75em;text-align:center}
+  .empty{color:var(--ink3);padding:1em .5em;line-height:1.6;font-size:.78em}
+
+  /* ---------- youtube ---------- */
+  .ytcard{flex:1;position:relative;overflow:hidden;padding:0;background:#0b0b0d;border-color:rgba(255,255,255,.5)}
+  #yt{position:absolute;inset:0;width:100%!important;height:100%!important;border:0}
+  .floatbtn{position:absolute;right:.6em;top:.6em;z-index:5;padding:.45em .85em;border-radius:999px;
+            background:rgba(255,255,255,.92);border:0;color:#111;font-size:.68em;font-weight:600;
+            cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.3)}
+  .floatbtn:hover{background:#fff}
+
+  /* ---------- настройки ---------- */
+  .setgrid{display:grid;grid-template-columns:1fr 1fr;gap:.5em;height:100%;overflow:auto;padding-right:.2em}
+  .setgrid::-webkit-scrollbar{width:5px}
+  .setgrid::-webkit-scrollbar-thumb{background:rgba(0,0,0,.18);border-radius:3px}
+  .setcard{padding:.6em .9em .7em;display:flex;flex-direction:column;gap:.1em;min-height:0}
+  .setcard .head{padding:0 0 .3em}
+  .srow{display:flex;align-items:center;justify-content:space-between;gap:.6em;padding:.28em 0;font-size:.76em}
+  .slabel{color:var(--ink2);white-space:nowrap}
+  .seg{display:flex;gap:.25em}
+  .seg button{min-width:2.1em;padding:.22em .55em;border-radius:.45em;border:1px solid rgba(0,0,0,.10);
+              background:rgba(255,255,255,.72);color:var(--ink);font-size:.95em;cursor:pointer;transition:.15s}
+  .seg button:hover{background:#fff}
+  .seg button.on{background:var(--accent);color:#fff;border-color:transparent;box-shadow:0 4px 10px rgba(10,132,255,.3)}
+  .tog{position:relative;width:2.5em;height:1.35em;border-radius:999px;border:0;cursor:pointer;
+       background:rgba(0,0,0,.16);transition:.2s;flex:none}
+  .tog::after{content:"";position:absolute;top:.14em;left:.14em;width:1.07em;height:1.07em;border-radius:50%;
+              background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.28);transition:.2s}
+  .tog.on{background:#34c759}
+  .tog.on::after{left:calc(100% - 1.21em)}
+  .themes{display:flex;gap:.35em}
+  .themes button{width:1.6em;height:1.6em;border-radius:50%;border:2px solid transparent;cursor:pointer;
+                 box-shadow:0 0 0 1px rgba(0,0,0,.08)}
+  .themes button.on{border-color:var(--accent)}
+  .themes button[data-theme=dawn]{background:linear-gradient(140deg,#f7c4da,#cbb9ff,#a2d3ff)}
+  .themes button[data-theme=sunset]{background:linear-gradient(140deg,#ffd6a5,#ff9a8b,#c58bff)}
+  .themes button[data-theme=ocean]{background:linear-gradient(140deg,#c1f0e8,#9fd2ff,#a8b8ff)}
+  .themes button[data-theme=mono]{background:linear-gradient(140deg,#eceff3,#cfd6de,#aeb7c2)}
+  .state{font-size:.92em;color:var(--ink2)}
+  .state.ok{color:#1a9c47}
+  .state.no{color:#c22}
+  .keys{display:grid;grid-template-columns:auto 1fr;gap:.16em .7em;font-size:.66em;color:#3d454f;align-content:start}
+  .keys kbd{font-family:inherit;background:rgba(255,255,255,.75);border:1px solid rgba(0,0,0,.08);
+            border-radius:.35em;padding:.05em .4em;font-size:.95em;color:#20242a;white-space:nowrap}
+  .acts{display:flex;gap:.45em;flex-wrap:wrap;align-items:center}
+  .acts button{padding:.45em .9em;border-radius:.6em;border:0;background:var(--accent);color:#fff;
+               font-size:.72em;font-weight:600;cursor:pointer;box-shadow:0 6px 16px rgba(10,132,255,.3)}
+  .acts button.ghost{background:rgba(255,255,255,.72);color:#2b313a;box-shadow:none;
+                     border:1px solid rgba(0,0,0,.06)}
+  .acts button:hover{filter:brightness(1.05)}
+
+  /* ---------- быстрый эфир ---------- */
+  .quickcard{flex:none;padding:.55em .8em .65em;display:flex;flex-direction:column;gap:.4em}
+  .quickcard .head{padding:0}
+  .qchips{display:flex;gap:.45em;min-height:0;flex:1}
+  .chip{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:.1em;
+        padding:.35em .6em;border-radius:.6em;background:rgba(255,255,255,.62);cursor:pointer;
+        border:1px solid rgba(255,255,255,.7);transition:.15s}
+  .chip:hover{background:#fff;transform:translateY(-1px)}
+  .chip b{font-size:.72em;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .chip span{font-size:.6em;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  /* ---------- поездка ---------- */
+  .tripcard{flex:none;padding:.9em 1.2em;display:flex;gap:1.4em;align-items:stretch;min-height:7.4em}
+  .speedwrap{display:flex;flex-direction:column;justify-content:center;gap:.15em;min-width:8em}
+  .spd{display:flex;align-items:baseline;gap:.35em}
+  .spd b{font-size:2.9em;font-weight:700;line-height:.95;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+  .spd span{font-size:.68em;color:var(--ink3);letter-spacing:.1em;text-transform:uppercase}
+  .gearbox{font-size:.66em;color:var(--ink3);letter-spacing:.08em;text-transform:uppercase}
+  .gearbox b{color:var(--ink);font-size:1.25em;letter-spacing:0}
+  .rpmwrap{flex:none;width:9em;display:flex;flex-direction:column;justify-content:center;gap:.35em}
+  .rpmbar{height:.4em;border-radius:.25em;background:rgba(0,0,0,.10);overflow:hidden}
+  .rpmbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#34c759,#ffcc00 70%,#ff3b30);
+            transition:width .15s linear}
+  .metrics{flex:1;display:grid;grid-template-columns:repeat(4,1fr);gap:.55em;align-content:center}
+  .metric{display:flex;flex-direction:column;gap:.2em;min-width:0}
+  .metric span{font-size:.6em;color:var(--ink3);letter-spacing:.07em;text-transform:uppercase;
+               white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .metric b{font-size:.92em;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;
+            overflow:hidden;text-overflow:ellipsis}
+  .mini{height:.28em;border-radius:.2em;background:rgba(0,0,0,.10);overflow:hidden;margin-top:.15em}
+  .mini i{display:block;height:100%;width:0;background:var(--accent);transition:width .3s}
+  .mini.warn i{background:#ff3b30}
+
+  .jobcard{flex:none;height:7.6em;padding:.8em 1.1em;display:flex;gap:1.2em;min-height:0;align-items:flex-start}
+  .jobinfo{flex:1;display:flex;flex-direction:column;gap:.28em;min-width:0;align-self:stretch}
+  .routebar{height:.38em;border-radius:.3em;background:rgba(0,0,0,.09);overflow:hidden;margin-top:.5em}
+  .routebar i{display:block;height:100%;width:0;background:var(--accent);transition:width .4s}
+  .routetext{font-size:.6em;color:var(--ink3);letter-spacing:.04em;margin-top:.25em}
+  .jobinfo .row1{display:flex;align-items:baseline;gap:.5em}
+  .jobinfo .cargo{font-size:.95em;font-weight:600;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+  .jobinfo .mass{font-size:.66em;color:var(--ink3)}
+  .route{display:flex;align-items:center;gap:.45em;font-size:.72em;color:#404852;min-width:0}
+  .route b{font-weight:600;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+  .route .arrow{color:var(--accent);flex:none}
+  .left{display:flex;gap:1.1em;font-size:.66em;color:var(--ink3);margin-top:.15em;flex-wrap:wrap}
+  .left b{color:var(--ink);font-size:1.12em}
+  .wearblock{display:none}
+  .statecard{flex:1;padding:.9em 1.2em;display:flex;gap:1.6em;min-height:0;align-items:center}
+  .weargrid{flex:1.2;display:grid;grid-template-columns:1fr 1fr;gap:.35em .9em;align-content:center}
+  .wegr .wl{display:flex;justify-content:space-between;font-size:.55em;color:var(--ink3);
+            letter-spacing:.05em;text-transform:uppercase;margin-bottom:.16em}
+  .wegr .mini{height:.26em;background:rgba(0,0,0,.09);border-radius:.2em;overflow:hidden}
+  .wegr .mini i{display:block;height:100%;width:0;background:#34c759;transition:width .3s}
+  .wegr .mini.warn i{background:#ff3b30}
+  .extras{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:.55em 1em;align-content:center}
+  .wearblock .wl{display:flex;justify-content:space-between;font-size:.55em;color:var(--ink3);
+                 letter-spacing:.05em;text-transform:uppercase}
+  .nodata{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.5em;
+          text-align:center;color:var(--ink3);font-size:.8em;line-height:1.6}
+  .nodata b{color:var(--ink);font-size:1.05em}
+  .nodata button{margin-top:.3em;padding:.5em .95em;border-radius:.6em;border:0;background:var(--accent);
+                 color:#fff;font-size:.85em;font-weight:600;cursor:pointer}
+
+  /* ---------- тост ---------- */
+  #hud{position:absolute;left:50%;top:1em;transform:translate(-50%,-8px);z-index:60;
+       padding:.4em 1em;border-radius:999px;background:rgba(22,24,30,.86);color:#fff;
+       font-size:.75em;opacity:0;transition:.22s;white-space:nowrap;pointer-events:none}
+  #hud.show{opacity:1;transform:translate(-50%,0)}
+</style>
+</head>
+<body>
+<div id="bezel">
+  <div id="screen">
+    <aside class="rail">
+      <div style="text-align:center">
+        <div id="clock">10:18</div>
+        <div id="day">пятница</div>
+      </div>
+      <nav class="railnav">
+        <button data-view="home" class="on" title="Приложения">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round">
+            <rect x="3.5" y="3.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.6"/>
+            <rect x="3.5" y="13.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.6"/>
+          </svg>
+        </button>
+        <button data-view="youtube" title="YouTube">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round">
+            <rect x="2.5" y="5.5" width="19" height="13" rx="3.6"/><path d="M10 9.4l4.8 2.6L10 14.6z" fill="currentColor" stroke="none"/>
+          </svg>
+        </button>
+        <button data-view="radio" title="Радио">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round">
+            <circle cx="12" cy="13.6" r="2.1"/><path d="M7.9 9.4a5.8 5.8 0 0 0 0 8.4M16.1 9.4a5.8 5.8 0 0 1 0 8.4M5 6.4a10 10 0 0 0 0 14.2M19 6.4a10 10 0 0 1 0 14.2"/>
+          </svg>
+        </button>
+        <button data-view="music" title="Музыка">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round">
+            <path d="M9 18V6.2l9-1.7v11.3"/><circle cx="6.6" cy="18" r="2.4"/><circle cx="15.6" cy="15.8" r="2.4"/>
+          </svg>
+        </button>
+        <button data-view="trip" title="Поездка">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round">
+            <path d="M4.5 17a8 8 0 1 1 15 0"/><path d="M12 13.5 15.5 9"/><circle cx="12" cy="14.4" r="1.5" fill="currentColor" stroke="none"/>
+          </svg>
+        </button>
+        <button data-view="settings" title="Настройки">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round">
+            <path d="M4 7h9M16.5 7H20M4 12h4M11.5 12H20M4 17h11M18.5 17H20"/>
+            <circle cx="14.5" cy="7" r="1.9"/><circle cx="9.5" cy="12" r="1.9"/><circle cx="16.5" cy="17" r="1.9"/>
+          </svg>
+        </button>
+      </nav>
+      <div id="mouseflag">МЫШЬ<br>ВЫКЛ</div>
+    </aside>
+
+    <div class="stage">
+      <div class="content">
+        <section class="view on" id="v-home" style="flex-direction:column">
+          <div class="card" style="flex:none">
+            <div class="grid">
+              <div class="appicon" data-go="youtube">
+                <div class="sq yt">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
+                    <rect x="2.5" y="5.5" width="19" height="13" rx="3.6"/><path d="M10 9.4l4.8 2.6L10 14.6z" fill="currentColor" stroke="none"/>
+                  </svg>
+                </div>
+                <b>YouTube</b>
+              </div>
+              <div class="appicon" data-go="radio">
+                <div class="sq radio">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <circle cx="12" cy="13.6" r="2.1"/><path d="M7.9 9.4a5.8 5.8 0 0 0 0 8.4M16.1 9.4a5.8 5.8 0 0 1 0 8.4"/>
+                  </svg>
+                </div>
+                <b>Радио</b>
+                <em id="tileRadioCount">—</em>
+              </div>
+              <div class="appicon" data-go="music">
+                <div class="sq music">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
+                    <path d="M9 18V6.2l9-1.7v11.3"/><circle cx="6.6" cy="18" r="2.4"/><circle cx="15.6" cy="15.8" r="2.4"/>
+                  </svg>
+                </div>
+                <b>Музыка</b>
+                <em id="tileMusicCount">—</em>
+              </div>
+              <div class="appicon" data-go="trip">
+                <div class="sq trip">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <path d="M4.5 17a8 8 0 1 1 15 0"/><path d="M12 13.5 15.5 9"/>
+                    <circle cx="12" cy="14.4" r="1.5" fill="currentColor" stroke="none"/>
+                  </svg>
+                </div>
+                <b>Поездка</b>
+                <em id="tileTripInfo">данные фуры</em>
+              </div>
+              <div class="appicon" data-go="settings">
+                <div class="sq set">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <path d="M4 7h9M16.5 7H20M4 12h4M11.5 12H20M4 17h11M18.5 17H20"/>
+                    <circle cx="14.5" cy="7" r="1.9"/><circle cx="9.5" cy="12" r="1.9"/><circle cx="16.5" cy="17" r="1.9"/>
+                  </svg>
+                </div>
+                <b>Настройки</b>
+              </div>
+            </div>
+          </div>
+
+          <div class="card nowcard">
+            <div class="cover" id="cover">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round">
+                <path d="M9 18V6.2l9-1.7v11.3"/><circle cx="6.6" cy="18" r="2.4"/><circle cx="15.6" cy="15.8" r="2.4"/>
+              </svg>
+            </div>
+            <div class="np">
+              <div class="s" id="npKind">медиасистема кабины</div>
+              <div class="t" id="npTitle">ничего не играет</div>
+              <div class="bar"><i id="barFill"></i></div>
+              <div class="nprow">
+                <span class="time" id="capTime">—</span>
+                <div class="ctrl">
+                  <button id="btnPrev" title="Предыдущий">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 5h2v14H7zM19 5v14l-9-7z"/></svg>
+                  </button>
+                  <button id="btnPlay" class="main" title="Пуск / пауза">
+                    <svg id="icoPlay" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5l11 7-11 7z"/></svg>
+                    <svg id="icoPause" viewBox="0 0 24 24" fill="currentColor" style="display:none"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>
+                  </button>
+                  <button id="btnNext" title="Следующий">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M15 5h2v14h-2zM5 5l9 7-9 7z"/></svg>
+                  </button>
+                  <button id="btnMute" title="Звук">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round">
+                      <path d="M4 9.5h3.2L12 5.5v13L7.2 14.5H4z"/><path d="M16 9.4a4 4 0 0 1 0 5.2"/>
+                    </svg>
+                  </button>
+                  <input id="vol" type="range" min="0" max="100" value="55"
+                         style="width:5.5em;accent-color:#0a84ff">
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="card quickcard">
+            <div class="head"><h2>Быстрый эфир</h2></div>
+            <div class="qchips" id="quickChips"></div>
+          </div>
+        </section>
+
+        <section class="view" id="v-youtube">
+          <div class="card ytcard">
+            <div id="yt"></div>
+            <button class="floatbtn" id="openyt">Открыть youtube.com</button>
+          </div>
+        </section>
+
+        <section class="view" id="v-radio">
+          <div class="card listcard">
+            <div class="head"><h2>Радио</h2><span id="radioCount"></span></div>
+            <div class="list" id="radioList"></div>
+          </div>
+        </section>
+
+        <section class="view" id="v-music">
+          <div class="card listcard">
+            <div class="head"><h2>Музыка</h2><span id="musicCount"></span></div>
+            <div class="list" id="musicList"></div>
+          </div>
+        </section>
+
+        <section class="view" id="v-trip">
+          <div class="card tripcard" id="tripLive" style="display:none">
+            <div class="speedwrap">
+              <div class="spd"><b id="tSpeed">0</b><span>км/ч</span></div>
+              <div class="gearbox">передача <b id="tGear">N</b> · <span id="tOdo">—</span></div>
+            </div>
+            <div class="rpmwrap">
+              <div class="rpmbar"><i id="tRpm"></i></div>
+              <div class="gearbox" id="tRpmText">— об/мин</div>
+            </div>
+            <div class="metrics">
+              <div class="metric"><span>Топливо</span><b id="tFuel">—</b>
+                <div class="mini"><i id="tFuelBar"></i></div></div>
+              <div class="metric"><span>Запас хода</span><b id="tRange">—</b></div>
+              <div class="metric"><span>AdBlue</span><b id="tAdblue">—</b>
+                <div class="mini"><i id="tAdblueBar"></i></div></div>
+              <div class="metric"><span>Круиз</span><b id="tCruise">—</b></div>
+            </div>
+          </div>
+
+          <div class="card jobcard" id="tripJob" style="display:none">
+            <div class="jobinfo">
+              <div class="row1"><span class="cargo" id="jCargo">—</span><span class="mass" id="jMass"></span></div>
+              <div class="route"><b id="jFrom">—</b><span class="arrow">→</span><b id="jTo">—</b></div>
+              <div class="left">
+                <span>осталось <b id="jDist">—</b></span>
+                <span>в пути <b id="jTime">—</b></span>
+                <span>доход <b id="jIncome">—</b></span>
+                <span>на выгрузку <b id="jDeadline">—</b></span>
+              </div>
+              <div class="routebar"><i id="jProgress"></i></div>
+              <div class="routetext" id="jDone">—</div>
+            </div>
+          </div>
+
+          <div class="card statecard" id="tripState" style="display:none">
+            <div class="weargrid">
+              <div class="wegr">
+                <div class="wl"><span>двигатель</span><span id="wEngine">—</span></div>
+                <div class="mini"><i id="wEngineBar"></i></div>
+              </div>
+              <div class="wegr">
+                <div class="wl"><span>коробка</span><span id="wTrans">—</span></div>
+                <div class="mini"><i id="wTransBar"></i></div>
+              </div>
+              <div class="wegr">
+                <div class="wl"><span>кабина</span><span id="wCabin">—</span></div>
+                <div class="mini"><i id="wCabinBar"></i></div>
+              </div>
+              <div class="wegr">
+                <div class="wl"><span>шасси</span><span id="wChassis">—</span></div>
+                <div class="mini"><i id="wChassisBar"></i></div>
+              </div>
+              <div class="wegr">
+                <div class="wl"><span>колёса</span><span id="wWheels">—</span></div>
+                <div class="mini"><i id="wWheelsBar"></i></div>
+              </div>
+            </div>
+            <div class="extras">
+              <div class="metric"><span>расход</span><b id="tCons">—</b></div>
+              <div class="metric"><span>давление в контуре</span><b id="tAir">—</b></div>
+              <div class="metric"><span>трейлер</span><b id="tTrailer">—</b></div>
+              <div class="metric"><span>пробег</span><b id="tOdo2">—</b></div>
+            </div>
+          </div>
+
+          <div class="card" id="tripEmpty" style="flex:1;display:flex">
+            <div class="nodata" id="tripHint">
+              <b>Данных с фуры нет</b>
+              <span id="tripWhy">запустите игру — экран покажет скорость, топливо и груз</span>
+              <button id="btnInstallPlugin">Установить плагин телеметрии</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="view" id="v-settings">
+          <div class="setgrid">
+            <div class="card setcard">
+              <div class="head"><h2>Экран</h2></div>
+              <div class="srow"><span class="slabel">Размер</span>
+                <div class="seg" id="sizeSeg">
+                  <button data-size="640,360">S</button>
+                  <button data-size="920,518">M</button>
+                  <button data-size="1160,652">L</button>
+                </div>
+              </div>
+              <div class="srow"><span class="slabel">Положение</span>
+                <div class="seg" id="posSeg">
+                  <button data-pos="tl">↖</button>
+                  <button data-pos="tr">↗</button>
+                  <button data-pos="bl">↙</button>
+                  <button data-pos="br">↘</button>
+                  <button data-pos="center">центр</button>
+                </div>
+              </div>
+              <div class="srow"><span class="slabel">Поверх всех окон</span>
+                <button class="tog" id="togTop"></button></div>
+              <div class="srow"><span class="slabel">Мышь по экрану</span>
+                <button class="tog" id="togCT"></button></div>
+            </div>
+
+            <div class="card setcard">
+              <div class="head"><h2>Оформление</h2></div>
+              <div class="srow"><span class="slabel">Тема</span>
+                <div class="themes" id="themes">
+                  <button data-theme="dawn" title="Рассвет"></button>
+                  <button data-theme="sunset" title="Закат"></button>
+                  <button data-theme="ocean" title="Океан"></button>
+                  <button data-theme="mono" title="Графит"></button>
+                </div>
+              </div>
+              <div class="srow"><span class="slabel">Корпус экрана</span>
+                <button class="tog" id="togBezel"></button></div>
+              <div class="srow"><span class="slabel">Блик на стекле</span>
+                <button class="tog" id="togGlare"></button></div>
+            </div>
+
+            <div class="card setcard">
+              <div class="head"><h2>Телеметрия</h2></div>
+              <div class="srow"><span class="slabel">Плагин в игре</span>
+                <span class="state" id="telPlugin">—</span></div>
+              <div class="srow"><span class="slabel">Данные</span>
+                <span class="state" id="telLive">—</span></div>
+              <div class="acts" style="margin-top:.4em">
+                <button id="btnTelInstall" class="ghost">Установить</button>
+                <button id="btnTelRemove" class="ghost">Удалить</button>
+              </div>
+            </div>
+
+            <div class="card setcard">
+              <div class="head"><h2>Клавиши</h2></div>
+              <div class="keys" id="keys"></div>
+            </div>
+
+            <div class="card setcard" style="grid-column:1 / -1">
+              <div class="acts">
+                <button data-cmd="click_through" class="ghost">Переключить мышь</button>
+                <button data-cmd="browse" class="ghost">Открыть YouTube</button>
+                <button data-cmd="quit">Выход</button>
+                <span class="empty" id="paths" style="margin-left:auto;padding:0"></span>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <div id="hud"></div>
+    <div id="glare"></div>
+  </div>
+</div>
+<audio id="audio" preload="none"></audio>
+
+<script src="https://www.youtube.com/iframe_api"></script>
+<script>
+(function () {
+  "use strict";
+
+  var S = {
+    cfg: null, lib: { stations: [], tracks: [], music_folder: "" },
+    view: "home", yt: null, ytReady: false, apiReady: false, ytBuilt: false,
+    cur: { kind: null, name: "", item: null, index: -1 },
+    vol: 55, muted: false, clickThrough: true, since: 0
+  };
+
+  var $ = function (id) { return document.getElementById(id); };
+  var audio = $("audio");
+  var hudTimer = null;
+
+  function toast(text) {
+    var h = $("hud");
+    h.textContent = text;
+    h.classList.add("show");
+    clearTimeout(hudTimer);
+    hudTimer = setTimeout(function () { h.classList.remove("show"); }, 1500);
+  }
+
+  var DAYS = ["воскресенье", "понедельник", "вторник", "среда", "четверг", "пятница", "суббота"];
+  function clock() {
+    var d = new Date();
+    $("clock").textContent = String(d.getHours()).padStart(2, "0") + ":" +
+                             String(d.getMinutes()).padStart(2, "0");
+    $("day").textContent = DAYS[d.getDay()];
+  }
+  clock();
+  setInterval(clock, 10000);
+
+  /* ---------------- навигация ---------------- */
+
+  function show(view) {
+    S.view = view;
+    document.querySelectorAll(".view").forEach(function (v) {
+      v.classList.toggle("on", v.id === "v-" + view);
+    });
+    document.querySelectorAll(".railnav button").forEach(function (b) {
+      b.classList.toggle("on", b.dataset.view === view);
+    });
+    if (view === "youtube") { ensureYT(); }
+  }
+
+  document.querySelectorAll(".railnav button").forEach(function (b) {
+    b.addEventListener("click", function () { show(b.dataset.view); });
+  });
+  document.querySelectorAll(".appicon").forEach(function (t) {
+    t.addEventListener("click", function () { show(t.dataset.go); });
+  });
+  document.querySelectorAll("[data-cmd]").forEach(function (b) {
+    b.addEventListener("click", function () { fetch("cmd?name=" + encodeURIComponent(b.dataset.cmd)); });
+  });
+  $("openyt").addEventListener("click", function () { fetch("cmd?name=browse"); });
+  $("btnInstallPlugin").addEventListener("click", function () {
+    toast("Ставлю плагин...");
+    fetch("api/install_plugin")
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var lines = (d.message || "").split("\n");
+        toast(lines[0] || "готово");
+        $("tripWhy").textContent = lines.slice(1).join(" ").trim() || lines[0];
+        pollTrip();
+      })
+      .catch(function () { toast("не удалось установить"); });
+  });
+
+  /* ---------------- громкость ---------------- */
+
+  function applyVolume(v) {
+    S.vol = Math.max(0, Math.min(100, Math.round(v)));
+    $("vol").value = S.vol;
+    audio.volume = S.muted ? 0 : S.vol / 100;
+    if (S.ytReady) { S.yt.setVolume(S.muted ? 0 : S.vol); }
+  }
+
+  $("vol").addEventListener("input", function () { S.muted = false; applyVolume(+$("vol").value); });
+  $("btnMute").addEventListener("click", function () { toggleMute(); });
+
+  function toggleMute() {
+    S.muted = !S.muted;
+    applyVolume(S.vol);
+    toast(S.muted ? "Звук выключен" : "Звук " + S.vol + "%");
+  }
+
+  /* ---------------- YouTube ---------------- */
+
+  function parseSource(src) {
+    src = (src || "").trim();
+    var out = { videoId: "", list: "" };
+    try {
+      var u = new URL(src);
+      if (u.hostname.indexOf("youtu.be") >= 0) { out.videoId = u.pathname.replace(/^\//, ""); }
+      else { out.videoId = u.searchParams.get("v") || ""; out.list = u.searchParams.get("list") || ""; }
+    } catch (e) { out.videoId = src; }
+    return out;
+  }
+
+  function ensureYT() {
+    if (!S.apiReady || !S.cfg || S.ytBuilt) { return; }
+    S.ytBuilt = true;
+    var src = parseSource(S.cfg.player.source);
+    var vars = { autoplay: 0, controls: 0, disablekb: 1, modestbranding: 1, rel: 0,
+                 playsinline: 1, iv_load_policy: 3, fs: 0 };
+    if (src.list) {
+      vars.list = src.list; vars.listType = "playlist";
+      if (S.cfg.player.loop) { vars.loop = 1; vars.playlist = src.list; }
+    }
+    var opts = {
+      playerVars: vars,
+      events: {
+        onReady: function () { S.ytReady = true; S.yt.setVolume(S.vol); },
+        onStateChange: function (e) {
+          if (e.data === 1) { S.cur.kind = "yt"; updateNow(); }
+          updatePlayIcon();
+        },
+        onError: function (e) {
+          var map = { 2: "неверная ссылка", 5: "ошибка плеера", 100: "видео удалено",
+                      101: "встраивание запрещено", 150: "встраивание запрещено" };
+          toast("YouTube: " + (map[e.data] || ("ошибка " + e.data)));
+        }
+      }
+    };
+    if (src.videoId) { opts.videoId = src.videoId; }
+    S.yt = new YT.Player("yt", opts);
+  }
+
+  window.onYouTubeIframeAPIReady = function () {
+    S.apiReady = true;
+    if (S.view === "youtube") { ensureYT(); }
+  };
+
+  /* ---------------- медиатека ---------------- */
+
+  function fmtSize(b) { return b > 1048576 ? (b / 1048576).toFixed(1) + " МБ" : Math.round(b / 1024) + " КБ"; }
+
+  function renderRadio() {
+    var box = $("radioList");
+    box.innerHTML = "";
+    var list = S.lib.stations || [];
+    $("radioCount").textContent = list.length ? list.length + " станций" : "";
+    $("tileRadioCount").textContent = list.length ? list.length + " станций" : "нет станций";
+    if (!list.length) {
+      box.innerHTML = '<div class="empty">Станции не найдены. Они берутся из<br>' +
+                      '<b>live_streams.sii</b> игры — добавьте их в радио ETS2.</div>';
+      return;
+    }
+    list.forEach(function (st, i) {
+      var row = document.createElement("div");
+      row.className = "row";
+      row.dataset.idx = i;
+      row.innerHTML = '<span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+        'stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13.6" r="2.1"/>' +
+        '<path d="M7.9 9.4a5.8 5.8 0 0 0 0 8.4M16.1 9.4a5.8 5.8 0 0 1 0 8.4"/></svg></span>' +
+        '<span class="n"></span><span class="m"></span><span class="eq"></span>';
+      row.querySelector(".n").textContent = st.name;
+      row.querySelector(".m").textContent = [
+        (st.genre && st.genre !== "Other") ? st.genre : "",
+        st.bitrate ? st.bitrate + " kbps" : ""
+      ].filter(Boolean).join(" · ");
+      row.addEventListener("click", function () { playStation(st, i); });
+      box.appendChild(row);
+    });
+  }
+
+  function renderMusic() {
+    var box = $("musicList");
+    box.innerHTML = "";
+    var list = S.lib.tracks || [];
+    $("musicCount").textContent = list.length ? list.length + " треков" : "";
+    $("tileMusicCount").textContent = list.length ? list.length + " треков" : "папка пуста";
+    if (!list.length) {
+      box.innerHTML = '<div class="empty">Нет треков. Положите .mp3 в папку<br><b>' +
+                      (S.lib.music_folder || "music") + "</b></div>";
+      return;
+    }
+    list.forEach(function (t, i) {
+      var row = document.createElement("div");
+      row.className = "row";
+      row.dataset.idx = i;
+      row.innerHTML = '<span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+        'stroke-width="2" stroke-linejoin="round"><path d="M9 18V6.2l9-1.7v11.3"/>' +
+        '<circle cx="6.6" cy="18" r="2.4"/><circle cx="15.6" cy="15.8" r="2.4"/></svg></span>' +
+        '<span class="n"></span><span class="m"></span><span class="eq"></span>';
+      row.querySelector(".n").textContent = t.name;
+      row.querySelector(".m").textContent = fmtSize(t.size);
+      row.addEventListener("click", function () { playTrack(i); });
+      box.appendChild(row);
+    });
+  }
+
+  function renderQuick() {
+    var box = $("quickChips");
+    box.innerHTML = "";
+    (S.lib.stations || []).slice(0, 5).forEach(function (st, i) {
+      var chip = document.createElement("div");
+      chip.className = "chip";
+      chip.innerHTML = "<b></b><span></span>";
+      chip.querySelector("b").textContent = st.name;
+      chip.querySelector("span").textContent =
+        (st.genre && st.genre !== "Other") ? st.genre
+        : (st.bitrate ? st.bitrate + " kbps" : "прямой эфир");
+      chip.addEventListener("click", function () { playStation(st, i); });
+      box.appendChild(chip);
+    });
+  }
+
+  function markRow(containerId, idx) {    document.querySelectorAll("#" + containerId + " .row").forEach(function (r) {
+      var on = +r.dataset.idx === idx;
+      r.classList.toggle("on", on);
+      r.querySelector(".eq").textContent = on ? "▶" : "";
+    });
+  }
+
+  /* ---------------- воспроизведение ---------------- */
+
+  function stopYT() { if (S.ytReady) { try { S.yt.pauseVideo(); } catch (e) {} } }
+
+  function playStation(st, i) {
+    S.cur = { kind: "radio", name: st.name, item: st, index: i };
+    stopYT();
+    audio.src = st.url;
+    audio.play().catch(function () { toast("Поток не отвечает: " + st.name); });
+    clearTimeout(S.radioTimer);
+    S.radioTimer = setTimeout(function () {
+      if (S.cur.kind === "radio" && audio.readyState < 2) { toast("Станция не отвечает: " + st.name); }
+    }, 9000);
+    markRow("radioList", i);
+    updateNow();
+  }
+
+  function playTrack(i) {
+    var t = S.lib.tracks[i];
+    if (!t) { return; }
+    S.cur = { kind: "music", name: t.name, item: t, index: i };
+    stopYT();
+    audio.src = "media?f=" + encodeURIComponent(t.file);
+    audio.play().catch(function () { toast("Не удалось открыть файл"); });
+    markRow("musicList", i);
+    updateNow();
+  }
+
+  function nextTrack() {
+    if (S.cur.kind === "music") {
+      playTrack((S.cur.index + 1) % Math.max(1, S.lib.tracks.length));
+    } else if (S.cur.kind === "radio") {
+      var n = S.lib.stations.length, i = (S.cur.index + 1) % Math.max(1, n);
+      playStation(S.lib.stations[i], i);
+    } else if (S.ytReady) {
+      try { S.yt.nextVideo(); } catch (e) {}
+    } else { toast("Ничего не играет"); }
+  }
+
+  function prevTrack() {
+    if (S.cur.kind === "music") {
+      var n = S.lib.tracks.length;
+      playTrack((S.cur.index - 1 + n) % Math.max(1, n));
+    } else if (S.cur.kind === "radio") {
+      var m = S.lib.stations.length, i = (S.cur.index - 1 + m) % Math.max(1, m);
+      playStation(S.lib.stations[i], i);
+    } else if (S.ytReady) {
+      try { S.yt.previousVideo(); } catch (e) {}
+    } else { toast("Ничего не играет"); }
+  }
+
+  function togglePlay() {
+    if (S.cur.kind === "radio" || S.cur.kind === "music") {
+      if (audio.paused) { audio.play().catch(function () {}); } else { audio.pause(); }
+      return;
+    }
+    if (S.ytReady) {
+      var st = S.yt.getPlayerState();
+      if (st === 1) { S.yt.pauseVideo(); } else { S.yt.playVideo(); }
+      setTimeout(updatePlayIcon, 300);
+      return;
+    }
+    show("home");
+    toast("Выберите станцию или ролик");
+  }
+
+  function seek(delta) {
+    if ((S.cur.kind === "radio" || S.cur.kind === "music") && !audio.paused) {
+      audio.currentTime = Math.max(0, audio.currentTime + delta);
+    } else if (S.ytReady) {
+      try { S.yt.seekTo(S.yt.getCurrentTime() + delta, true); } catch (e) {}
+    }
+  }
+
+  function updatePlayIcon() {
+    var playing = false;
+    if (S.cur.kind === "radio" || S.cur.kind === "music") { playing = !audio.paused; }
+    else if (S.ytReady) { try { playing = S.yt.getPlayerState() === 1; } catch (e) {} }
+    $("icoPlay").style.display = playing ? "none" : "";
+    $("icoPause").style.display = playing ? "" : "none";
+  }
+
+  function updateNow() {
+    var kinds = { radio: "радио", music: "музыка", yt: "youtube" };
+    $("npKind").textContent = kinds[S.cur.kind] || "медиасистема кабины";
+    $("npTitle").textContent = S.cur.name || "ничего не играет";
+    $("cover").style.background = S.cur.kind === "radio"
+      ? "linear-gradient(150deg,#6fc3ff,#0a84ff)"
+      : S.cur.kind === "yt" ? "linear-gradient(150deg,#ff6b81,#e11d48)"
+      : "linear-gradient(150deg,#c7b6ff,#8fb8ff)";
+  }
+
+  function playVideoId(id) {
+    show("youtube");
+    var t = setInterval(function () {
+      if (S.ytReady) {
+        clearInterval(t);
+        S.cur = { kind: "yt", name: "YouTube", item: null, index: -1 };
+        S.yt.loadVideoById(id);
+        S.yt.playVideo();
+        updateNow();
+        toast("Играю в кабине");
+      }
+    }, 200);
+  }
+
+  $("btnPlay").addEventListener("click", togglePlay);
+  $("btnNext").addEventListener("click", nextTrack);
+  $("btnPrev").addEventListener("click", prevTrack);
+
+  audio.addEventListener("play", updatePlayIcon);
+  audio.addEventListener("pause", updatePlayIcon);
+  audio.addEventListener("ended", function () { nextTrack(); });
+  audio.addEventListener("error", function () { if (S.cur.kind) { toast("Ошибка воспроизведения"); } });
+  audio.addEventListener("timeupdate", function () {
+    var d = audio.duration || 0;
+    $("barFill").style.width = (d ? (audio.currentTime / d) * 100 : 0).toFixed(1) + "%";
+    $("capTime").textContent = d ? fmtTime(audio.currentTime) + " / " + fmtTime(d) : "прямой эфир";
+  });
+
+  function fmtTime(s) {
+    s = Math.max(0, Math.floor(s));
+    return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
+  }
+
+  setInterval(function () {
+    if (S.ytReady && S.cur.kind === "yt") {
+      try {
+        var d = S.yt.getDuration() || 0, c = S.yt.getCurrentTime() || 0;
+        $("barFill").style.width = (d ? c / d * 100 : 0).toFixed(1) + "%";
+        $("capTime").textContent = d ? fmtTime(c) + " / " + fmtTime(d) : "прямой эфир";
+      } catch (e) {}
+    }
+  }, 500);
+
+  /* ---------------- поездка (телеметрия игры) ---------------- */
+
+  function gearText(g) {
+    if (!g) { return "N"; }
+    return g < 0 ? "R" + Math.abs(g) : String(g);
+  }
+
+  function setBar(id, pct, warn) {
+    var el = $(id);
+    if (!el) { return; }
+    el.style.width = Math.max(0, Math.min(100, pct)).toFixed(1) + "%";
+    var box = el.parentNode;
+    if (box) { box.classList.toggle("warn", !!warn); }
+  }
+
+  function mins(v) {
+    if (v === null || v === undefined || v < 0) { return "—"; }
+    var h = Math.floor(v / 60), m = Math.round(v % 60);
+    return h > 0 ? h + " ч " + String(m).padStart(2, "0") + " мин" : m + " мин";
+  }
+
+  function updateTrip(t) {
+    var live = !!(t && t.ok && t.data);
+    if (t) {
+      $("telPlugin").textContent = t.plugin ? "установлен" : "не установлен";
+      $("telPlugin").className = "state " + (t.plugin ? "ok" : "no");
+      $("telLive").textContent = live ? "идут" : (t.game ? "нет связи" : "игра не запущена");
+      $("telLive").className = "state " + (live ? "ok" : "no");
+    }
+    $("tripLive").style.display = live ? "flex" : "none";
+    $("tripJob").style.display = live ? "flex" : "none";
+    $("tripState").style.display = live ? "flex" : "none";
+    $("tripEmpty").style.display = live ? "none" : "flex";
+
+    if (!live) {
+      $("tileTripInfo").textContent = t && t.game ? "нет данных" : "данные фуры";
+      $("tripWhy").textContent = (t && t.game)
+        ? "игра запущена, но плагин телеметрии не загружен — перезапустите ETS2"
+        : "запустите игру — экран покажет скорость, топливо и груз";
+      $("btnInstallPlugin").style.display = (t && t.plugin === false) ? "" : "none";
+      return;
+    }
+
+    var d = t.data;
+    var kmh = Math.round((d.speed || 0) * 3.6);
+    $("tSpeed").textContent = kmh;
+    $("tGear").textContent = gearText(d.gear);
+    $("tOdo").textContent = d.odometer > 0 ? Math.round(d.odometer / 1000) + " км" : "—";
+    $("tRpm").style.width = Math.min(100, (d.rpm || 0) / 24).toFixed(1) + "%";
+    $("tRpmText").textContent = Math.round(d.rpm || 0) + " об/мин";
+
+    var cap = d.fuel_cap || 0;
+    $("tFuel").textContent = d.fuel >= 0
+      ? d.fuel.toFixed(0) + " л" + (cap ? " · " + Math.round(d.fuel / cap * 100) + "%" : "")
+      : "—";
+    setBar("tFuelBar", cap ? d.fuel / cap * 100 : 0, cap && d.fuel / cap < 0.15);
+
+    $("tRange").textContent = d.range >= 0 ? Math.round(d.range / 1000) + " км" : "—";
+
+    var acap = d.adblue_cap || 0;
+    $("tAdblue").textContent = d.adblue >= 0 ? Math.round(d.adblue) + " л" : "—";
+    setBar("tAdblueBar", acap ? d.adblue / acap * 100 : 0, acap && d.adblue / acap < 0.1);
+
+    $("tCruise").textContent = d.cruise > 0 ? Math.round(d.cruise * 3.6) + " км/ч" : "—";
+
+    var j = d.job || {};
+    $("jCargo").textContent = j.cargo || "без груза";
+    $("jMass").textContent = j.mass > 0 ? Math.round(j.mass / 1000) + " т" : "";
+    $("jFrom").textContent = j.from || "—";
+    $("jTo").textContent = j.to || "—";
+    var nav = d.nav || {};
+    $("jDist").textContent = nav.dist > 0 ? (nav.dist / 1000).toFixed(0) + " км" : "—";
+    $("jTime").textContent = nav.time > 0 ? mins(nav.time / 60) : "—";
+    $("jIncome").textContent = j.income > 0 ? "€ " + Math.round(j.income).toLocaleString("ru-RU") : "—";
+    $("jDeadline").textContent = j.delivery > 0 ? mins(j.delivery) : "—";
+
+    var planned = j.planned > 0 ? j.planned : 0;
+    var leftKm = nav.dist > 0 ? nav.dist / 1000 : 0;
+    if (planned > 0) {
+      var pct = Math.max(0, Math.min(100, (1 - leftKm / planned) * 100));
+      $("jProgress").style.width = pct.toFixed(1) + "%";
+      $("jDone").textContent = "пройдено " + Math.max(0, Math.round(planned - leftKm)) +
+        " из " + Math.round(planned) + " км";
+    } else {
+      $("jProgress").style.width = "0%";
+      $("jDone").textContent = "";
+    }
+
+    var w = d.wear || {};
+    [["wEngine", "wEngineBar", w.engine],
+     ["wTrans", "wTransBar", w.transmission],
+     ["wCabin", "wCabinBar", w.cabin],
+     ["wChassis", "wChassisBar", w.chassis],
+     ["wWheels", "wWheelsBar", w.wheels]].forEach(function (it) {
+      var v = (it[2] || 0) * 100;
+      $(it[0]).textContent = Math.round(v) + "%";
+      setBar(it[1], v, v > 15);
+    });
+
+    $("tCons").textContent = d.consumption > 0 ? (d.consumption * 100).toFixed(1) + " л/100" : "—";
+    $("tAir").textContent = d.air > 0 ? d.air.toFixed(1) + " бар" : "—";
+    $("tTrailer").textContent = d.trailer ? "подключён" : "нет";
+    $("tOdo2").textContent = d.odometer > 0 ? Math.round(d.odometer / 1000).toLocaleString("ru-RU") + " км" : "—";
+
+    $("tileTripInfo").textContent = kmh + " км/ч · " + gearText(d.gear);
+  }
+
+  var tripTimer = null;
+  function pollTrip() {
+    fetch("api/telemetry", { cache: "no-store" })
+      .then(function (r) { return r.json(); })
+      .then(function (t) { updateTrip(t); })
+      .catch(function () {})
+      .then(function () {
+        clearTimeout(tripTimer);
+        tripTimer = setTimeout(pollTrip, 800);
+      });
+  }
+
+  /* ---------------- настройки ---------------- */
+
+  function saveSettings(params) {
+    var qs = Object.keys(params).map(function (k) {
+      return k + "=" + encodeURIComponent(params[k]);
+    }).join("&");
+    return fetch("api/settings?" + qs, { cache: "no-store" }).then(function (r) { return r.json(); });
+  }
+
+  function markSeg(box, btn) {
+    box.querySelectorAll("button").forEach(function (b) { b.classList.toggle("on", b === btn); });
+  }
+
+  function setTheme(name) {
+    document.body.classList.remove("th-dawn", "th-sunset", "th-ocean", "th-mono");
+    document.body.classList.add("th-" + name);
+    document.querySelectorAll("#themes button").forEach(function (b) {
+      b.classList.toggle("on", b.dataset.theme === name);
+    });
+  }
+
+  function bindSettings() {
+    document.querySelectorAll("#sizeSeg button").forEach(function (b) {
+      b.addEventListener("click", function () {
+        markSeg($("sizeSeg"), b);
+        var wh = b.dataset.size.split(",");
+        saveSettings({ width: wh[0], height: wh[1] });
+      });
+    });
+    document.querySelectorAll("#posSeg button").forEach(function (b) {
+      b.addEventListener("click", function () {
+        markSeg($("posSeg"), b);
+        saveSettings({ pos: b.dataset.pos });
+      });
+    });
+    document.querySelectorAll("#themes button").forEach(function (b) {
+      b.addEventListener("click", function () {
+        setTheme(b.dataset.theme);
+        saveSettings({ theme: b.dataset.theme });
+      });
+    });
+
+    var pairs = [
+      ["togTop", "always_on_top"],
+      ["togBezel", "bezel"],
+      ["togGlare", "glare"]
+    ];
+    pairs.forEach(function (p) {
+      $(p[0]).addEventListener("click", function () {
+        var on = !$(p[0]).classList.contains("on");
+        $(p[0]).classList.toggle("on", on);
+        var params = {};
+        params[p[1]] = on ? 1 : 0;
+        saveSettings(params);
+        if (p[1] === "bezel") { document.body.classList.toggle("no-bezel", !on); }
+        if (p[1] === "glare") { $("glare").style.display = on ? "" : "none"; }
+      });
+    });
+
+    $("togCT").addEventListener("click", function () {
+      fetch("cmd?name=click_through");
+    });
+
+    $("btnTelInstall").addEventListener("click", function () {
+      toast("Ставлю плагин...");
+      fetch("api/install_plugin").then(function (r) { return r.json(); }).then(function (d) {
+        toast((d.message || "").split("\n")[0]);
+        pollTrip();
+      });
+    });
+    $("btnTelRemove").addEventListener("click", function () {
+      fetch("api/uninstall_plugin").then(function (r) { return r.json(); }).then(function (d) {
+        toast((d.message || "").split("\n")[0]);
+        pollTrip();
+      });
+    });
+  }
+
+  function applySettingsUi(cfg) {
+    var look = cfg.look || {};
+    setTheme(look.theme || "dawn");
+    $("togBezel").classList.toggle("on", look.bezel !== false);
+    $("togGlare").classList.toggle("on", look.glare !== false);
+    $("togTop").classList.toggle("on", cfg.window.always_on_top !== false);
+    $("togCT").classList.toggle("on", cfg.window.click_through !== false);
+    var w = cfg.window;
+    var cur = null;
+    document.querySelectorAll("#sizeSeg button").forEach(function (b) {
+      if (+b.dataset.size.split(",")[0] === w.width) { cur = b; }
+    });
+    if (cur) { markSeg($("sizeSeg"), cur); }
+    bindSettings();
+  }
+
+  /* ---------------- команды из Python ---------------- */
+
+  function handle(name, arg) {
+    switch (name) {
+      case "toast": toast(arg || ""); break;
+      case "view": show(arg || "home"); break;
+      case "playvid": playVideoId(arg); break;
+      case "play_pause": togglePlay(); break;
+      case "next": nextTrack(); break;
+      case "prev": prevTrack(); break;
+      case "vol_up": applyVolume(S.vol + 10); toast("Громкость " + S.vol + "%"); break;
+      case "vol_down": applyVolume(S.vol - 10); toast("Громкость " + S.vol + "%"); break;
+      case "mute": toggleMute(); break;
+      case "seek_fwd": seek(10); break;
+      case "seek_back": seek(-10); break;
+      case "reload": location.reload(); break;
+      default: break;
+    }
+  }
+
+  window.cabin = { cmd: handle, state: function () { return S; }, trip: updateTrip };
+
+  /* ---------------- состояние ---------------- */
+
+  function updateState(st) {
+    if (!st) { return; }
+    S.clickThrough = st.click_through !== false;
+    document.body.classList.toggle("interactive", !S.clickThrough);
+    $("mouseflag").innerHTML = S.clickThrough ? "МЫШЬ<br>ВЫКЛ" : "МЫШЬ<br>ВКЛ";
+    var t = $("togCT");
+    if (t) { t.classList.toggle("on", !S.clickThrough); }
+  }
+
+  function poll() {
+    fetch("events?since=" + S.since, { cache: "no-store" })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (typeof d.next === "number") { S.since = d.next; }
+        (d.events || []).forEach(function (e) { handle(e.name, e.arg); });
+        updateState(d.state);
+      })
+      .catch(function () {})
+      .then(function () { setTimeout(poll, 250); });
+  }
+
+  /* ---------------- клавиши ---------------- */
+
+  document.addEventListener("keydown", function (e) {
+    if (e.ctrlKey || e.altKey || e.metaKey) { return; }
+    var k = e.key;
+    if (k === " " || k === "k") { e.preventDefault(); togglePlay(); }
+    else if (k === "ArrowUp") { e.preventDefault(); applyVolume(S.vol + 5); }
+    else if (k === "ArrowDown") { e.preventDefault(); applyVolume(S.vol - 5); }
+    else if (k === "ArrowRight") { e.preventDefault(); seek(10); }
+    else if (k === "ArrowLeft") { e.preventDefault(); seek(-10); }
+    else if (k === "m") { toggleMute(); }
+    else if (k === "1") { show("home"); }
+    else if (k === "2") { show("youtube"); }
+    else if (k === "3") { show("radio"); }
+    else if (k === "4") { show("music"); }
+    else if (k === "5") { show("settings"); }
+  });
+
+  /* ---------------- старт ---------------- */
+
+  var LABELS = {
+    visible: "показать / скрыть экран", click_through: "мышь сквозь экран",
+    play_pause: "пуск / пауза", next: "следующий", prev: "предыдущий",
+    seek_fwd: "+10 секунд", seek_back: "−10 секунд", vol_up: "громче",
+    vol_down: "тише", mute: "звук вкл/выкл", browse: "открыть YouTube",
+    back: "назад к экрану", reload: "перезагрузить", quit: "выход",
+    move_up: "окно вверх", move_down: "окно вниз", move_left: "окно влево",
+    move_right: "окно вправо"
+  };
+
+  Promise.all([
+    fetch("config", { cache: "no-store" }).then(function (r) { return r.json(); }),
+    fetch("api/library", { cache: "no-store" }).then(function (r) { return r.json(); })
+  ]).then(function (res) {
+    S.cfg = res[0];
+    S.lib = res[1];
+    S.vol = (S.cfg.player && S.cfg.player.volume) || 55;
+    if (!S.cfg.look.bezel) { document.body.classList.add("no-bezel"); }
+    if (!S.cfg.look.glare) { $("glare").style.display = "none"; }
+    applyVolume(S.vol);
+    renderRadio();
+    renderMusic();
+    renderQuick();
+    applySettingsUi(S.cfg);
+    $("keys").innerHTML = Object.keys(S.cfg.hotkeys).map(function (a) {
+      return "<kbd>" + S.cfg.hotkeys[a] + "</kbd><span>" + (LABELS[a] || a) + "</span>";
+    }).join("");
+    $("paths").innerHTML = "Музыка: <b>" + (S.lib.music_folder || "—") + "</b>";
+    pollTrip();
+    poll();
+  }).catch(function (e) {
+    $("npTitle").textContent = "нет связи с приложением";
+    console.error(e);
+  });
+})();
+</script>
+</body>
+</html>
