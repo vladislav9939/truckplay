@@ -1,4 +1,8 @@
-﻿# TruckPlay
+# TruckPlay
+
+[![build](https://github.com/vladislav9939/truckplay/actions/workflows/build.yml/badge.svg)](https://github.com/vladislav9939/truckplay/actions/workflows/build.yml)
+[![release](https://img.shields.io/github/v/release/vladislav9939/truckplay)](https://github.com/vladislav9939/truckplay/releases)
+[![license](https://img.shields.io/github/license/vladislav9939/truckplay)](LICENSE)
 
 **Медиасистема кабины для Euro Truck Simulator 2 и American Truck Simulator.**
 Свой экран поверх игры: YouTube, радио и музыка из твоей установки ETS2, телеметрия
@@ -42,7 +46,7 @@ no external servers.
 
 ## Установка
 
-1. Скачайте `TruckPlay.exe` из [Releases](../../releases) и положите в любую папку.
+1. Скачайте `TruckPlay.exe` из [Releases](https://github.com/vladislav9939/truckplay/releases) и положите в любую папку.
 2. `fix_borderless.bat` — один раз, переводит игру в borderless (иначе полный экран
    перекрывает окно). Делает резервную копию `config.cfg`.
 3. `install_telemetry.bat` — один раз, ставит плагин телеметрии в папку плагинов игры.
@@ -95,6 +99,9 @@ python -m PyInstaller --onefile --windowed --name TruckPlay ^
 Запуск без сборки:
 
 ```bat
+git clone https://github.com/vladislav9939/truckplay
+cd truckplay
+python -m pip install -r requirements.txt
 python src\truckplay.py
 ```
 
